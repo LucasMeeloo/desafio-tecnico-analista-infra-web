@@ -7,16 +7,16 @@ class client::wordpress (
   # Baixa e extrai o WordPress APENAS se o wp-settings.php não existir
   exec { "download_and_extract_wp_${domain}":
     command => "/usr/bin/wget -qO- https://wordpress.org/latest.tar.gz | /bin/tar -xz --strip-components=1 -C ${docroot}",
-    creates => "${docroot}/wp-settings.php", # <-- GARANTIA DE IDEMPOTÊNCIA
+    creates => "${docroot}/wp-settings.php",
     user    => $client_name,
     require => File[$docroot],
   }
 
-  # Em produção, usaríamos o wp-cli para instalar o plugin de cache via bash:
-  # exec { "install_lscache_${domain}":
-  #   command => "/usr/local/bin/wp plugin install litespeed-cache --activate --path=${docroot}",
-  #   unless  => "/usr/local/bin/wp plugin is-active litespeed-cache --path=${docroot}",
-  #   user    => $client_name,
-  #   require => Exec["download_and_extract_wp_${domain}"],
-  # }
+  # Cria o wp-config.php a partir do sample e INJETA a ativação do cache
+  exec { "enable_wp_cache_${domain}":
+    command => "/bin/cp ${docroot}/wp-config-sample.php ${docroot}/wp-config.php && /bin/sed -i \"1 a define('WP_CACHE', true);\" ${docroot}/wp-config.php",
+    creates => "${docroot}/wp-config.php", # Idempotência: só roda se o config não existir
+    user    => $client_name,
+    require => Exec["download_and_extract_wp_${domain}"],
+  }
 }
