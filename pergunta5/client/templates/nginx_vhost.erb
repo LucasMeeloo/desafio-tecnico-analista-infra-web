@@ -1,0 +1,24 @@
+# Gerenciado pelo Puppet - Nao edite manualmente
+server {
+    listen 80;
+    server_name <%= @domain %> www.<%= @domain %>;
+    root /var/www/<%= @domain %>/htdocs;
+    index index.php;
+
+    set $skip_cache 0;
+    if ($request_uri ~* "/wp-admin/|/xmlrpc.php") {
+        set $skip_cache 1;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include /etc/nginx/fastcgi_params;
+        fastcgi_pass unix:/run/php/php-fpm.sock; # Mock do LSPHP
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param LITESPEED_SKIP_CACHE $skip_cache;
+    }
+}
